@@ -613,65 +613,132 @@ global.LOOP = CLASS(function(cls) {
 	var runs = [];
 
 	var fire = function() {
-
+		
 		if (animationInterval === undefined) {
-
-			var beforeTime = Date.now() / 1000;
-
-			animationInterval = INTERVAL(function() {
-
-				var time = Date.now() / 1000;
-				var deltaTime = time - beforeTime;
+			
+			if (global.requestAnimationFrame !== undefined && global.performance !== undefined && performance.now !== undefined) {
 				
-				if (deltaTime > 0) {
-
-					for (var i = 0; i < loopInfos.length; i += 1) {
-
-						var loopInfo = loopInfos[i];
-
-						if (loopInfo.fps !== undefined && loopInfo.fps > 0) {
-
-							if (loopInfo.timeSigma === undefined) {
-								loopInfo.timeSigma = 0;
-								loopInfo.countSigma = 0;
-							}
-
-							// calculate count.
-							var count = parseInt(loopInfo.fps * deltaTime * (loopInfo.timeSigma / deltaTime + 1), 10) - loopInfo.countSigma;
-
-							// start.
-							if (loopInfo.start !== undefined) {
-								loopInfo.start();
-							}
-
-							// run interval.
-							var interval = loopInfo.interval;
-							for (j = 0; j < count; j += 1) {
-								interval(loopInfo.fps);
-							}
-
-							// end.
-							if (loopInfo.end !== undefined) {
-								loopInfo.end(deltaTime);
-							}
-
-							loopInfo.countSigma += count;
-
-							loopInfo.timeSigma += deltaTime;
-							if (loopInfo.timeSigma > 1000) {
-								loopInfo.timeSigma = undefined;
+				var beforeTime = performance.now() / 1000;
+				
+				var step;
+				animationInterval = requestAnimationFrame(step = function(now) {
+					
+					var time = now / 1000;
+					var deltaTime = time - beforeTime;
+					
+					if (deltaTime > 0) {
+	
+						beforeTime = time;
+						
+						for (var i = 0; i < loopInfos.length; i += 1) {
+							
+							var loopInfo = loopInfos[i];
+							
+							if (loopInfo.fps !== undefined && loopInfo.fps > 0) {
+	
+								if (loopInfo.timeSigma === undefined) {
+									loopInfo.timeSigma = 0;
+									loopInfo.countSigma = 0;
+								}
+	
+								// calculate count.
+								var count = parseInt(loopInfo.fps * deltaTime * (loopInfo.timeSigma / deltaTime + 1), 10) - loopInfo.countSigma;
+	
+								// start.
+								if (loopInfo.start !== undefined) {
+									loopInfo.start();
+								}
+	
+								// run interval.
+								var interval = loopInfo.interval;
+								
+								for (var j = 0; j < count; j += 1) {
+									interval(loopInfo.fps);
+								}
+	
+								// end.
+								if (loopInfo.end !== undefined) {
+									loopInfo.end(deltaTime);
+								}
+	
+								loopInfo.countSigma += count;
+	
+								loopInfo.timeSigma += deltaTime;
+								if (loopInfo.timeSigma > 1000) {
+									loopInfo.timeSigma = undefined;
+								}
 							}
 						}
+	
+						// run runs.
+						for (var i = 0; i < runs.length; i += 1) {
+							runs[i](deltaTime);
+						}
 					}
-
-					// run runs.
-					for (var i = 0; i < runs.length; i += 1) {
-						runs[i](deltaTime);
+					
+					animationInterval = requestAnimationFrame(step);
+				});
+			}
+			
+			else {
+				
+				var beforeTime = Date.now() / 1000;
+	
+				animationInterval = INTERVAL(function() {
+	
+					var time = Date.now() / 1000;
+					var deltaTime = time - beforeTime;
+					
+					if (deltaTime > 0) {
+	
+						for (var i = 0; i < loopInfos.length; i += 1) {
+	
+							var loopInfo = loopInfos[i];
+	
+							if (loopInfo.fps !== undefined && loopInfo.fps > 0) {
+	
+								if (loopInfo.timeSigma === undefined) {
+									loopInfo.timeSigma = 0;
+									loopInfo.countSigma = 0;
+								}
+	
+								// calculate count.
+								var count = parseInt(loopInfo.fps * deltaTime * (loopInfo.timeSigma / deltaTime + 1), 10) - loopInfo.countSigma;
+	
+								// start.
+								if (loopInfo.start !== undefined) {
+									loopInfo.start();
+								}
+	
+								// run interval.
+								var interval = loopInfo.interval;
+								for (j = 0; j < count; j += 1) {
+									interval(loopInfo.fps);
+								}
+	
+								// end.
+								if (loopInfo.end !== undefined) {
+									loopInfo.end(deltaTime);
+								}
+	
+								loopInfo.countSigma += count;
+	
+								loopInfo.timeSigma += deltaTime;
+								if (loopInfo.timeSigma > 1000) {
+									loopInfo.timeSigma = undefined;
+								}
+							}
+						}
+	
+						// run runs.
+						for (var i = 0; i < runs.length; i += 1) {
+							runs[i](deltaTime);
+						}
+	
+						beforeTime = time;
 					}
-
-					beforeTime = time;
-				}
-			});
+				});
+			}
 		}
 	};
 	
