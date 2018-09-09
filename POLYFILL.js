@@ -1096,3 +1096,8 @@ global.ADD_STYLE = METHOD({
 		});
 	}
 });
+
+// 게임 패드를 지원하지 않습니다.
+navigator.getGamepads = function() {
+	return [];
+};
