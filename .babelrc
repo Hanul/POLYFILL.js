@@ -1,10 +1,11 @@
 {
 	"presets": [
 		[
-			"env", {
-			"target": {
-				"browsers": ["android >= 4", "ios >= 6"]
+			"@babel/preset-env", {
+				"targets": {
+					"browsers": ["android >= 4", "ios >= 6"]
+				}
 			}
-		}
-	]]
+		]
+	]
 }
