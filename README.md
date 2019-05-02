@@ -1,4 +1,4 @@
-***이 프로젝트는 더 이상 관리되지 않습니다.***
+***이 프로젝트는 더 이상 관리되지 않습니다. UPPERCASE 기반 프로젝트용 Internet Explorer 11을 위한 Polyfill은 https://github.com/Hanul/UPPERCASE/blob/master/UPPERCASE-BOOT/POLYFILL-IE11.js 를 참고해주시기 바랍니다.***
 
 # POLYFILL.js
 UPPERCASE 기반 프로젝트에서 구버전 브라우저 지원을 해야할 때 사용하는 Polyfill 스크립트
