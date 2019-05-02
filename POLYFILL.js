@@ -1,4 +1,10 @@
 /*
+ * POLYFILL.js
+ *
+ * UPPERCASE 기반 프로젝트에서 구버전 브라우저 지원을 해야할 때 사용하는 Polyfill 스크립트
+ */
+
+/*
  * promise.js
  * fetch.js를 사용하기 위해 포함
  */
@@ -609,8 +615,8 @@ global.REQUEST = METHOD({
 global.LOOP = CLASS(function(cls) {
 	
 	var animationInterval;
-	var loopInfos = [];
-	var runs = [];
+	
+	var infos = [];
 
 	var fire = function() {
 		
@@ -627,53 +633,35 @@ global.LOOP = CLASS(function(cls) {
 					var deltaTime = time - beforeTime;
 					
 					if (deltaTime > 0) {
-	
-						beforeTime = time;
 						
-						for (var i = 0; i < loopInfos.length; i += 1) {
+						for (var i = 0; i < infos.length; i += 1) {
 							
-							var loopInfo = loopInfos[i];
+							var info = infos[i];
 							
-							if (loopInfo.fps !== undefined && loopInfo.fps > 0) {
+							if (info.fps !== undefined && info.fps > 0) {
 	
-								if (loopInfo.timeSigma === undefined) {
-									loopInfo.timeSigma = 0;
-									loopInfo.countSigma = 0;
+								if (info.timeSigma === undefined) {
+									info.timeSigma = 0;
 								}
 	
-								// calculate count.
-								var count = parseInt(loopInfo.fps * deltaTime * (loopInfo.timeSigma / deltaTime + 1), 10) - loopInfo.countSigma;
-	
-								// start.
-								if (loopInfo.start !== undefined) {
-									loopInfo.start();
-								}
-	
-								// run interval.
-								var interval = loopInfo.interval;
+								info.timeSigma += deltaTime;
 								
-								for (var j = 0; j < count; j += 1) {
-									interval(loopInfo.fps);
+								var frameSecond = 1 / info.fps;
+								
+								if (info.timeSigma >= frameSecond) {
+									
+									info.run(frameSecond);
+									
+									info.timeSigma -= frameSecond;
 								}
-	
-								// end.
-								if (loopInfo.end !== undefined) {
-									loopInfo.end(deltaTime);
-								}
-	
-								loopInfo.countSigma += count;
-	
-								loopInfo.timeSigma += deltaTime;
-								if (loopInfo.timeSigma > 1000) {
-									loopInfo.timeSigma = undefined;
-								}
+							}
+							
+							else {
+								info.run(deltaTime);
 							}
 						}
 	
-						// run runs.
-						for (var i = 0; i < runs.length; i += 1) {
-							runs[i](deltaTime);
-						}
+						beforeTime = time;
 					}
 					
 					animationInterval = requestAnimationFrame(step);
@@ -690,49 +678,32 @@ global.LOOP = CLASS(function(cls) {
 					var deltaTime = time - beforeTime;
 					
 					if (deltaTime > 0) {
+
+						for (var i = 0; i < infos.length; i += 1) {
 	
-						for (var i = 0; i < loopInfos.length; i += 1) {
+							var info = infos[i];
 	
-							var loopInfo = loopInfos[i];
+							if (info.fps !== undefined && info.fps > 0) {
 	
-							if (loopInfo.fps !== undefined && loopInfo.fps > 0) {
-	
-								if (loopInfo.timeSigma === undefined) {
-									loopInfo.timeSigma = 0;
-									loopInfo.countSigma = 0;
+								if (info.timeSigma === undefined) {
+									info.timeSigma = 0;
 								}
-	
-								// calculate count.
-								var count = parseInt(loopInfo.fps * deltaTime * (loopInfo.timeSigma / deltaTime + 1), 10) - loopInfo.countSigma;
-	
-								// start.
-								if (loopInfo.start !== undefined) {
-									loopInfo.start();
-								}
-	
-								// run interval.
-								var interval = loopInfo.interval;
-								for (j = 0; j < count; j += 1) {
-									interval(loopInfo.fps);
-								}
-	
-								// end.
-								if (loopInfo.end !== undefined) {
-									loopInfo.end(deltaTime);
-								}
-	
-								loopInfo.countSigma += count;
-	
-								loopInfo.timeSigma += deltaTime;
-								if (loopInfo.timeSigma > 1000) {
-									loopInfo.timeSigma = undefined;
+								
+								info.timeSigma += deltaTime;
+								
+								var frameSecond = 1 / info.fps;
+								
+								if (info.timeSigma >= frameSecond) {
+									
+									info.run(frameSecond);
+									
+									info.timeSigma -= frameSecond;
 								}
 							}
-						}
-	
-						// run runs.
-						for (var i = 0; i < runs.length; i += 1) {
-							runs[i](deltaTime);
+							
+							else {
+								info.run(deltaTime);
+							}
 						}
 	
 						beforeTime = time;
@@ -744,97 +715,68 @@ global.LOOP = CLASS(function(cls) {
 	
 	var stop = function() {
 
-		if (loopInfos.length <= 0 && runs.length <= 0) {
-
-			animationInterval.remove();
+		if (infos.length <= 0) {
+			
+			if (global.requestAnimationFrame !== undefined && global.performance !== undefined && performance.now !== undefined) {
+				cancelAnimationFrame(animationInterval);
+			} else {
+				animationInterval.remove();
+			}
+			
 			animationInterval = undefined;
 		}
 	};
 
 	return {
 
-		init : function(inner, self, fpsOrRun, intervalOrFuncs) {
-			//OPTIONAL: fpsOrRun
-			//OPTIONAL: intervalOrFuncs
-			//OPTIONAL: intervalOrFuncs.start
-			//REQUIRED: intervalOrFuncs.interval
-			//OPTIONAL: intervalOrFuncs.end
-
-			var run;
-			var start;
-			var interval;
-			var end;
-
-			var info;
-
-			if (intervalOrFuncs !== undefined) {
-
-				// init intervalOrFuncs.
-				if (CHECK_IS_DATA(intervalOrFuncs) !== true) {
-					interval = intervalOrFuncs;
-				} else {
-					start = intervalOrFuncs.start;
-					interval = intervalOrFuncs.interval;
-					end = intervalOrFuncs.end;
-				}
+		init : function(inner, self, fps, run) {
+			//OPTIONAL: fps
+			//REQUIRED: run
 			
-				var resume = self.resume = RAR(function() {
-					
-					loopInfos.push( info = {
-						fps : fpsOrRun,
-						start : start,
-						interval : interval,
-						end : end
-					});
-					
-					fire();
-				});
-
-				var pause = self.pause = function() {
-
-					REMOVE({
-						array : loopInfos,
-						value : info
-					});
-
-					stop();
-				};
-
-				var changeFPS = self.changeFPS = function(fps) {
-					//REQUIRED: fps
-
-					info.fps = fps;
-				};
-
-				var remove = self.remove = function() {
-					pause();
-				};
+			if (run === undefined) {
+				run = fps;
+				fps = undefined;
 			}
-
-			// when fpsOrRun is run
-			else {
+			
+			var info;
+			
+			var resume = self.resume = RAR(function() {
 				
-				var resume = self.resume = RAR(function() {
-					
-					runs.push(run = fpsOrRun);
-					
-					fire();
+				infos.push(info = {
+					fps : fps,
+					run : run
 				});
-
-				var pause = self.pause = function() {
-
-					REMOVE({
-						array : runs,
-						value : run
-					});
-
-					stop();
-				};
-
-				var remove = self.remove = function() {
-					pause();
-				};
-			}
+				
+				fire();
+			});
+			
+			var pause = self.pause = function() {
+			
+				REMOVE({
+					array : infos,
+					value : info
+				});
+				
+				stop();
+			};
+			
+			var changeFPS = self.changeFPS = function(fps) {
+				//REQUIRED: fps
+				
+				info.fps = fps;
+			};
+			
+			var clearFPS = self.clearFPS = function() {
+				delete info.fps;
+			};
+			
+			var getFPS = self.getFPS = function() {
+				return info.fps;
+			};
+			
+			var remove = self.remove = function() {
+				pause();
+			};
 		}
 	};
 });
@@ -926,6 +868,7 @@ global.ADD_STYLE = METHOD({
 					// add -webkit- prefix.
 					else if (name === 'transform') {
 						el.style['-webkit-' + name] = value;
+						el.style[name] = value;
 					}
 
 					// set normal style.
